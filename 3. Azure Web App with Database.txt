@@ -1,0 +1,97 @@
+	cd "D:\SoftUni\Containers and Cloud\10-Exercise-IaC-and-Monitoring\3. Azure Web App with Database"
+
+								-- GitHub Part --
+
+	Create empty PUBLIC repository in GitHub named TaskBoard
+	
+	Create folder D:\SoftUni\Containers and Cloud\10-Exercise-IaC-and-Monitoring\keysforgithub
+	
+
+	*GitBash (as Administrator !):
+	
+		Do either of the following:
+		
+		--------------------------------------------------------------
+		
+		1. If we don't havbe a key associated to the profile in github
+	
+			cd "D:\SoftUni\Containers and Cloud\10-Exercise-IaC-and-Monitoring"
+			
+		
+			ssh-keygen -t ed25519 -C "clydefrog@students.softuni.bg"
+		
+				/d/SoftUni/Containers and Cloud/10-Exercise-IaC-and-Monitoring/keysforgithub/key
+			
+				no pass phrase
+		
+		
+			cd ./keysforgithubw
+			
+			ls
+
+			cat key.pub
+			
+			copy the key from inside
+			
+			go to profile -> settings -> ssh and gpg keys -> new ssh key -> Title: win ; paste key in the field -> confirm with password
+			
+			eval `ssh-agent -s`
+		
+			ssh-add "D:\SoftUni\Containers and Cloud\10-Exercise-IaC-and-Monitoring\keysforgithub\key" 
+	
+		2. If we already have a key 
+		
+			eval `ssh-agent -s`
+		
+			ssh-add "D:\SoftUni\Containers and Cloud\10-Exercise-IaC-and-Monitoring\keysforgithub\key" 
+		
+		--------------------------------------------------------------
+		
+		
+		cd "D:\SoftUni\Containers and Cloud\10-Exercise-IaC-and-Monitoring\3. Azure Web App with Database" (where the root folder of the app is)
+		
+		git clone git@github.com:clydefrog1/TaskBoard.git - creates a new folder TaskBoard in the folder we are in
+		
+		cd ./TaskBoard
+		
+		git add . - add the files in it - this is done where the git folder exists
+
+		git commit -m "Initial-Commit"
+
+		git push
+	
+	
+										-- GitHub Part END--
+	
+	
+	
+	* Powershell:
+	
+		run PowerShell as administrator
+	
+		cd "D:\SoftUni\Containers and Cloud\10-Exercise-IaC-and-Monitoring\3. Azure Web App with Database\TaskBoard" (where the root folder of the app is)
+		
+		Fill the main.tf file accoridng ot the instructions (in source control take the url from github url in browser https://github.com/clydefrog1/TaskBoard)
+		
+		docker login azure
+		
+		terraform init
+		
+		terraform fmt
+		
+		terraform validate
+	
+		terraform apply
+	
+		Type: yes
+	
+	
+Split the config between the files main, output, variables, values
+
+		terraform fmt
+		
+		terraform validate
+	
+		terraform apply -var-file="values.tfvars"
+	
+		Wait for some long time even after it is created

@@ -1,0 +1,228 @@
+We work with the app from Problem 3.
+
+
+
+Create a new empty repo in GitHub calles Terraform-Actions-Azure
+
+
+In Git Bash:
+
+	eval `ssh-agent -s`
+	
+	ssh-add "D:\SoftUni\Containers and Cloud\10-Exercise-IaC-and-Monitoring\keysforgithub\key" 
+
+	cd "D:\SoftUni\Containers and Cloud\10-Exercise-IaC-and-Monitoring\4. Terraform with CICD"
+
+	git clone git@github.com:clydefrog1/Terraform-Actions-Azure.git
+	
+	Copy the resources (just the app stuff)
+	
+	Copy main, values and variables in the new folder
+
+	Rename values to terraform.tfvars. Terraform finds it on its own and you should not point to it specifically.
+	
+	cd ".\Terraform-Actions-Azure"
+
+	git add .
+	
+	git commit -m "Initial-Commit"
+	
+	git push
+	
+	
+	---------------------------------------------------- Git Hub Actions Pipeline ----------------------------------------------------
+
+
+Go to github -> actions -> deployment -> terraform -> click configure. We will first write a test workflow in GitHub Actions that will try to initialize the working directory, check if the configuration files are correctly formatted and validate the configuration.
+
+	git hub will create a direcotry workflows in our repo, and inside there will be a terraform.yml file. This will be the file that will start the pipeline(workflow in GitHub Actions)
+	
+	
+Rename it to terraform-test.yml
+
+
+Change the file:
+
+	remove the comments
+	
+	remove the pull on line 6
+	
+	change the stuff at line 27 like this:
+		    - name: Setup Terraform
+			  uses: hashicorp/setup-terraform@v2
+			  with:
+				terraform_version: 1.1.7
+				
+	add on line 38 -recursive flag
+		run: terraform fmt -check -recursive
+		
+	replace everything beneath line 40 with the following:
+	
+		# Validate Terraform files
+		- name: Terraform Validate
+		  run: terraform validate
+	
+	
+Click on Commit changes button
+
+	We can see inside the actions tab what is going on
+
+	Explanation on what is being executed at 2:33:00 in the video
+
+
+
+
+
+	---------------------------------- Azure Part - Apply Configuration Workflow -------------------------------
+	
+	Step 1: Create Service Principal - create a service principal with a "Contributor" role in Azure that we will use to authenticate GitHub Actions
+	
+	The account will be in Azure Active Directory -> App registrations -> Owned applications
+	
+	docker login azure
+	
+	Look at subscriptions tab in Azure portal -> copy subscription id (mine was 42b0914b-0c46-41dd-b59b-6d138d9af0da)
+	
+	az ad sp create-for-rbac --name "Azure-Terraform-GitHub-Actions1" --role contributor --scopes /subscriptions/42b0914b-0c46-41dd-b59b-6d138d9af0da --sdk-auth
+	
+		(If insufficient priviledges error -> change the --name with a digit at the end)
+		
+	
+	The command has the following json output. Copy it in a separate file - we will need this for the github config:
+	
+		{
+		  "clientId": "2fe3132e-ea65-4f6b-8cea-d62282ac1eb7",
+		  "clientSecret": "N0C8Q~BItiveNJ.TGTH46OONt9W~enCRw5fwga6T",
+		  "subscriptionId": "42b0914b-0c46-41dd-b59b-6d138d9af0da",
+		  "tenantId": "4a06d40c-e447-42be-baef-dd0421ed10bd",
+		  "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
+		  "resourceManagerEndpointUrl": "https://management.azure.com/",
+		  "activeDirectoryGraphResourceId": "https://graph.windows.net/",
+		  "sqlManagementEndpointUrl": "https://management.core.windows.net:8443/",
+		  "galleryEndpointUrl": "https://gallery.azure.com/",
+		  "managementEndpointUrl": "https://management.core.windows.net/"
+		}
+	
+	
+	
+	---------------------------------------------------- Git Hub Part ----------------------------------------------------
+	
+	In GitHub go to the Repo -> Settings -> Secrets and variables -> Actions -> Click New repository secret button
+	Create the following secrets and get their values from the json
+	
+		AZURE_CLIENT_ID				2fe3132e-ea65-4f6b-8cea-d62282ac1eb7
+		AZURE_CLIENT_SECRET			N0C8Q~BItiveNJ.TGTH46OONt9W~enCRw5fwga6T
+		AZURE_SUBSCRIPTION_ID		42b0914b-0c46-41dd-b59b-6d138d9af0da
+		AZURE_TENANT_ID				4a06d40c-e447-42be-baef-dd0421ed10bd
+		AZURE_CREDENTIALS			The whole json {} (with the brackets)
+	
+	
+	Go to the workflow we have created earlier - go to this folder in the repo in GitHub
+	
+	    Terraform-Actions-Azure/.github/workflows/
+	
+	Open terraform-test.yml -> click on the pencil to edit -> rename it to just terraform.yml and add the environmentaal variables after permissions like this:
+	
+		env:
+		  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+		  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET	 }}
+		  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+		  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+	
+	
+	After terraform.init add the login to azure cli (line 42)
+
+		# Login to Azure via Azure CLI
+		- name: Login via Azure CLI
+		  uses: azure/login@v1
+		  with:
+			creds: ${{ secrets.AZURE_CREDENTIALS }}
+	
+	
+	Now when we run the action, the terminal (which will be created in github somewhere in the background) will receive a token from Azure so that it can work with Azure
+	
+	Add a terraform apply section at the end:
+	
+		# Apply the config
+		- name: Terraform Apply
+		  run: terraform apply -auto-approve
+	
+	
+	
+	
+	Terraform will clean up the state after each run of the config and if we run the action again it will create everything anew.
+	We have to keep the tfstate file somewhere to avoid that.
+	
+	We will create a storage account in Azure for this purpose.
+	
+	
+	
+	
+	---------------------------------------------------- Azure Part ----------------------------------------------------
+	
+	
+	In Azure Portal Create a resource group
+		Resource Group: StorageRG
+		
+		Click on review and create
+	
+	In Powershell:
+	
+		Create the account:
+	
+			az storage account create --name taskboardstoragemite --resource-group StorageRG --location westeurope --sku Standard_LRS --kind StorageV2
+			
+			az storage container create -n taskboardcontainer --account-name taskboardstoragemite
+	
+		
+	In Azure Portal:
+	
+		Click on the new Resource Group -> StorageRG -> taskboardstoragemite (the storage account) -> Containers (left) -> 	
+		taskboardcontainer
+	
+		We can use this disk in github actions
+	
+	
+	
+	---------------------------------------------------- Git Hub Part ----------------------------------------------------
+	
+	In GitBash:
+	
+		cd /d/SoftUni/Containers and Cloud/10-Exercise-IaC-and-Monitoring/4. Terraform with CICD/Terraform-Actions-Azure
+		
+		git pull
+	
+	
+	In main.tf we have to add now a backend block in the terraform  {} block
+	
+	backend "azurerm" {
+		resource_group_name 	= "StorageRG"
+		storage_account_name 	= "taskboardstoragemite"
+		container_name			= "taskboardcontainer"
+		key						= "terraform.tfstate"
+	}
+	
+	
+	In GitBash:
+	
+		git add .
+		
+		git commit -m "Adding persistent storage"
+		
+		git push
+	
+	
+	
+	We have to delete the old resource group adn create a new one because we have a limit in our account
+	
+	On every git push terraform actions will update the Application
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

@@ -1,0 +1,17 @@
+Fill the file according to the lab	
+	
+	cd "D:\SoftUni\Containers and Cloud\10-Exercise-IaC-and-Monitoring\2. Azure Web App"
+
+	docker login azure
+
+	terraform init
+
+	terraform fmt
+
+	terraform validate
+	
+	terraform apply
+	
+	Type: yes
+	
+	Takes some time to load 

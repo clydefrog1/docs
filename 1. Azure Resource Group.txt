@@ -1,0 +1,25 @@
+Create main.tf
+	D:\SoftUni\Containers and Cloud\10-Exercise-IaC-and-Monitoring\1. Azure Resource Group
+	
+	
+In Powershell (each terraform instance is saved in the folder we run the commands in):
+
+	cd "D:\SoftUni\Containers and Cloud\10-Exercise-IaC-and-Monitoring\1. Azure Resource Group"
+
+
+Log in in Azure to receive token
+
+	docker login azure
+
+
+Initialize the Directory and Download the Providers, Format the File
+
+	terraform init
+
+	terraform fmt
+
+	terraform validate
+	
+	terraform apply
+	
+	Type: yes
